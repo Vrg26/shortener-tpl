@@ -53,35 +53,31 @@ func (h *handler) AddUrl(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[1:]
 	if id != "" {
 		http.NotFound(w, r)
-
 		return
 	}
 	if r.Body == nil {
 		http.Error(w, "url is required", http.StatusBadRequest)
-
 		return
 	}
+
 	defer r.Body.Close()
+
 	b, err := io.ReadAll(r.Body)
 
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
-
 		return
 	}
 
 	originUrl := string(b)
-
 	if originUrl == "" {
 		http.Error(w, "url is required", http.StatusBadRequest)
-
 		return
 	}
 
 	_, err = url.Parse(originUrl)
 	if err != nil {
 		http.Error(w, "url is invalid", http.StatusBadRequest)
-
 		return
 	}
 
@@ -89,8 +85,9 @@ func (h *handler) AddUrl(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
-
 		return
 	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fmt.Sprintf("http://%s/%s", r.Host, newId)))
 }
