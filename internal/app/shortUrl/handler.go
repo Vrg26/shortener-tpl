@@ -75,7 +75,7 @@ func (h *handler) AddUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = url.Parse(originUrl)
+	_, err = url.ParseRequestURI(originUrl)
 	if err != nil {
 		http.Error(w, "url is invalid", http.StatusBadRequest)
 		return
