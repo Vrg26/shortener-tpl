@@ -4,16 +4,15 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/Vrg26/shortener-tpl/internal/app/shortUrl"
 	"log"
 	"sync"
 )
 
-var _ shortUrl.Storage = &db{}
+var _ Storage = &db{}
 
 type db struct {
 	sync.Mutex
-	urls map[string]shortUrl.ShortUrl
+	urls map[string]ShortUrl
 }
 
 func (d *db) generateId() string {
@@ -33,13 +32,13 @@ func (d *db) generateId() string {
 func (d *db) Add(url string) (string, error) {
 	if d.urls == nil {
 		d.Lock()
-		d.urls = make(map[string]shortUrl.ShortUrl)
+		d.urls = make(map[string]ShortUrl)
 		d.Unlock()
 	}
 
 	newId := d.generateId()
 	d.Lock()
-	d.urls[newId] = shortUrl.ShortUrl{
+	d.urls[newId] = ShortUrl{
 		Id:        newId,
 		OriginUrl: url,
 	}
@@ -47,16 +46,16 @@ func (d *db) Add(url string) (string, error) {
 	return newId, nil
 }
 
-func (d *db) GetById(id string) (shortUrl.ShortUrl, error) {
+func (d *db) GetById(id string) (ShortUrl, error) {
 	if shortUrl, ok := d.urls[id]; ok {
 		return shortUrl, nil
 	}
 
-	return shortUrl.ShortUrl{}, errors.New("short url not found")
+	return ShortUrl{}, errors.New("short url not found")
 }
 
-func NewMemoryStorage() shortUrl.Storage {
+func NewMemoryStorage() Storage {
 	return &db{
-		urls: make(map[string]shortUrl.ShortUrl),
+		urls: make(map[string]ShortUrl),
 	}
 }

@@ -1,4 +1,4 @@
-package shortUrl
+package db
 
 type Storage interface {
 	Add(url string) (string, error)

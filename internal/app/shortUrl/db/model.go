@@ -1,4 +1,4 @@
-package shortUrl
+package db
 
 type ShortUrl struct {
 	Id        string
