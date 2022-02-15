@@ -3,6 +3,7 @@ package shortUrl
 import (
 	"bytes"
 	"github.com/Vrg26/shortener-tpl/internal/app/shortUrl/db"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -11,6 +12,21 @@ import (
 	"net/url"
 	"testing"
 )
+
+func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, nil)
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	return resp, string(respBody)
+}
 
 func Test_handler_AddUrl(t *testing.T) {
 	st := db.NewMemoryStorage()
@@ -87,11 +103,15 @@ func Test_handler_AddUrl(t *testing.T) {
 }
 
 func Test_handler_GetUrl(t *testing.T) {
+	r := chi.NewRouter()
+	ts := httptest.NewServer(r)
+	defer ts.Close()
 	st := db.NewMemoryStorage()
 	idUrl, err := st.Add("https://jsonplaceholder.typicode.com/posts")
 	require.NoError(t, err)
 	s := NewService(st)
 	handlerSU := NewHandler(*s)
+	handlerSU.RegisterChi(r)
 	type want struct {
 		contentType string
 		statusCode  int
@@ -121,19 +141,15 @@ func Test_handler_GetUrl(t *testing.T) {
 			name:    "empty get request",
 			request: "/",
 			want: want{
-				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
+				contentType: "",
+				statusCode:  405,
 			},
 		},
 	}
+	defer ts.Close()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
-			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlerSU.GetUrl)
-			h.ServeHTTP(w, request)
-
-			res := w.Result()
+			res, _ := testRequest(t, ts, http.MethodGet, tt.request)
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
 		})

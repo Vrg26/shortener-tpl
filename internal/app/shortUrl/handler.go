@@ -22,7 +22,7 @@ func (h *handler) Register(r *http.ServeMux) {
 }
 
 func (h *handler) RegisterChi(r *chi.Mux) {
-	r.Get("/", h.GetUrl)
+	r.Get("/{ID}", h.GetUrl)
 	r.Post("/", h.AddUrl)
 }
 
@@ -38,7 +38,7 @@ func (h *handler) routeRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) GetUrl(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Path[1:]
+	id := chi.URLParam(r, "ID")
 	if id == "" {
 		http.Error(w, "Empty path", http.StatusBadRequest)
 
@@ -50,6 +50,7 @@ func (h *handler) GetUrl(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+	w.WriteHeader(http.StatusTemporaryRedirect)
 	http.Redirect(w, r, shortUrl.OriginUrl, http.StatusTemporaryRedirect)
 }
 
