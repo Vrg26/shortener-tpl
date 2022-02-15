@@ -107,7 +107,7 @@ func Test_handler_GetUrl(t *testing.T) {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 	st := db.NewMemoryStorage()
-	idUrl, err := st.Add("https://jsonplaceholder.typicode.com/posts")
+	idUrl, err := st.Add("https://practicum.yandex.ru")
 	require.NoError(t, err)
 	s := NewService(st)
 	handlerSU := NewHandler(*s)
@@ -126,7 +126,7 @@ func Test_handler_GetUrl(t *testing.T) {
 			request: "/" + idUrl,
 			want: want{
 				contentType: "text/html; charset=utf-8",
-				statusCode:  307,
+				statusCode:  200,
 			},
 		},
 		{

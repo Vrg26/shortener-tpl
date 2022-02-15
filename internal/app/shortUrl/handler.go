@@ -50,7 +50,6 @@ func (h *handler) GetUrl(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	w.WriteHeader(http.StatusTemporaryRedirect)
 	http.Redirect(w, r, shortUrl.OriginUrl, http.StatusTemporaryRedirect)
 }
 
