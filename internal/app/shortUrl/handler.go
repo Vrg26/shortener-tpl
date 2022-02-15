@@ -3,6 +3,7 @@ package shortUrl
 import (
 	"fmt"
 	"github.com/Vrg26/shortener-tpl/internal/app/handlers"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,9 +18,12 @@ type handler struct {
 func NewHandler(service Service) *handler {
 	return &handler{shortUrlService: service}
 }
-
 func (h *handler) Register(r *http.ServeMux) {
-	r.HandleFunc("/", h.routeRequest)
+}
+
+func (h *handler) RegisterChi(r *chi.Mux) {
+	r.Get("/", h.GetUrl)
+	r.Post("/", h.AddUrl)
 }
 
 func (h *handler) routeRequest(w http.ResponseWriter, r *http.Request) {
