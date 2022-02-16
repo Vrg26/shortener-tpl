@@ -109,7 +109,7 @@ func Test_handler_GetUrl(t *testing.T) {
 	h := NewHandler(*s)
 	h.Register(r)
 
-	idUrl, err := st.Add("https://practicum.yandex.ru")
+	idURL, err := st.Add("https://practicum.yandex.ru")
 	require.NoError(t, err)
 
 	ts := httptest.NewServer(r)
@@ -126,7 +126,7 @@ func Test_handler_GetUrl(t *testing.T) {
 	}{
 		{
 			name:    "success test",
-			request: "/" + idUrl,
+			request: "/" + idURL,
 			want: want{
 				contentType: "text/html; charset=utf-8",
 				statusCode:  200,
