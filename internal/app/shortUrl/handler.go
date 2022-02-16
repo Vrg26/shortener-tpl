@@ -18,36 +18,21 @@ type handler struct {
 func NewHandler(service Service) *handler {
 	return &handler{shortUrlService: service}
 }
-func (h *handler) Register(r *http.ServeMux) {
-}
 
-func (h *handler) RegisterChi(r *chi.Mux) {
+func (h *handler) Register(r *chi.Mux) {
 	r.Get("/{ID}", h.GetUrl)
 	r.Post("/", h.AddUrl)
-}
-
-func (h *handler) routeRequest(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		h.AddUrl(w, r)
-	case http.MethodGet:
-		h.GetUrl(w, r)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
 }
 
 func (h *handler) GetUrl(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "ID")
 	if id == "" {
 		http.Error(w, "Empty path", http.StatusBadRequest)
-
 		return
 	}
 	shortUrl, err := h.shortUrlService.GetById(id)
 	if err != nil {
 		http.NotFound(w, r)
-
 		return
 	}
 	http.Redirect(w, r, shortUrl.OriginUrl, http.StatusTemporaryRedirect)

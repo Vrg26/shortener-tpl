@@ -1,7 +1,9 @@
 package handlers
 
-import "net/http"
+import (
+	"github.com/go-chi/chi/v5"
+)
 
 type Handler interface {
-	Register(r *http.ServeMux)
+	Register(r *chi.Mux)
 }

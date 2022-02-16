@@ -43,7 +43,7 @@ func Test_handler_AddUrl(t *testing.T) {
 		want    want
 	}{
 		{
-			name:    "Correct request",
+			name:    "success test",
 			request: "/",
 			body:    "https://twitter.com",
 			want: want{
@@ -52,7 +52,7 @@ func Test_handler_AddUrl(t *testing.T) {
 			},
 		},
 		{
-			name:    "Empty body",
+			name:    "should return error bad request. Empty body",
 			request: "/",
 			body:    "",
 			want: want{
@@ -61,7 +61,7 @@ func Test_handler_AddUrl(t *testing.T) {
 			},
 		},
 		{
-			name:    "Incorrect path",
+			name:    "should return not found. Invalid path",
 			request: "/test",
 			body:    "testestset",
 			want: want{
@@ -70,7 +70,7 @@ func Test_handler_AddUrl(t *testing.T) {
 			},
 		},
 		{
-			name:    "Incorrect url",
+			name:    "should return error bad request. Invalid URL",
 			request: "/",
 			body:    "testestset",
 			want: want{
@@ -104,14 +104,17 @@ func Test_handler_AddUrl(t *testing.T) {
 
 func Test_handler_GetUrl(t *testing.T) {
 	r := chi.NewRouter()
-	ts := httptest.NewServer(r)
-	defer ts.Close()
 	st := db.NewMemoryStorage()
+	s := NewService(st)
+	h := NewHandler(*s)
+	h.Register(r)
+
 	idUrl, err := st.Add("https://practicum.yandex.ru")
 	require.NoError(t, err)
-	s := NewService(st)
-	handlerSU := NewHandler(*s)
-	handlerSU.RegisterChi(r)
+
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
 	type want struct {
 		contentType string
 		statusCode  int
@@ -122,7 +125,7 @@ func Test_handler_GetUrl(t *testing.T) {
 		want    want
 	}{
 		{
-			name:    "correct test",
+			name:    "success test",
 			request: "/" + idUrl,
 			want: want{
 				contentType: "text/html; charset=utf-8",
@@ -130,7 +133,7 @@ func Test_handler_GetUrl(t *testing.T) {
 			},
 		},
 		{
-			name:    "url not found",
+			name:    "should return not found",
 			request: "/1234",
 			want: want{
 				contentType: "text/plain; charset=utf-8",
@@ -138,7 +141,7 @@ func Test_handler_GetUrl(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty get request",
+			name:    "should return method not allowed",
 			request: "/",
 			want: want{
 				contentType: "",
