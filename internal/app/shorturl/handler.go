@@ -1,4 +1,4 @@
-package shortUrl
+package shorturl
 
 import (
 	"fmt"
@@ -12,33 +12,33 @@ import (
 var _ handlers.Handler = &handler{}
 
 type handler struct {
-	shortUrlService Service
+	shortURLService Service
 }
 
 func NewHandler(service Service) *handler {
-	return &handler{shortUrlService: service}
+	return &handler{shortURLService: service}
 }
 
 func (h *handler) Register(r *chi.Mux) {
-	r.Get("/{ID}", h.GetUrl)
-	r.Post("/", h.AddUrl)
+	r.Get("/{ID}", h.GetURL)
+	r.Post("/", h.AddURL)
 }
 
-func (h *handler) GetUrl(w http.ResponseWriter, r *http.Request) {
+func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "ID")
 	if id == "" {
 		http.Error(w, "Empty path", http.StatusBadRequest)
 		return
 	}
-	shortUrl, err := h.shortUrlService.GetById(id)
+	shortURL, err := h.shortURLService.GetByID(id)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	http.Redirect(w, r, shortUrl.OriginUrl, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, shortURL.OriginURL, http.StatusTemporaryRedirect)
 }
 
-func (h *handler) AddUrl(w http.ResponseWriter, r *http.Request) {
+func (h *handler) AddURL(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[1:]
 	if id != "" {
 		http.NotFound(w, r)
@@ -70,7 +70,7 @@ func (h *handler) AddUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newId, err := h.shortUrlService.Add(originUrl)
+	newID, err := h.shortURLService.Add(originUrl)
 
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -78,5 +78,5 @@ func (h *handler) AddUrl(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf("http://%s/%s", r.Host, newId)))
+	w.Write([]byte(fmt.Sprintf("http://%s/%s", r.Host, newID)))
 }

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Vrg26/shortener-tpl/internal/app/shortUrl"
-	"github.com/Vrg26/shortener-tpl/internal/app/shortUrl/db"
+	"github.com/Vrg26/shortener-tpl/internal/app/shorturl"
+	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"log"
@@ -21,8 +21,8 @@ func runServer() error {
 	r.Use(middleware.Recoverer)
 
 	st := db.NewMemoryStorage()
-	service := shortUrl.NewService(st)
-	handler := shortUrl.NewHandler(*service)
+	service := shorturl.NewService(st)
+	handler := shorturl.NewHandler(*service)
 	handler.Register(r)
 
 	return http.ListenAndServe(":8080", r)

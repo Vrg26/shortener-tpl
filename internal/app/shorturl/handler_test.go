@@ -1,8 +1,8 @@
-package shortUrl
+package shorturl
 
 import (
 	"bytes"
-	"github.com/Vrg26/shortener-tpl/internal/app/shortUrl/db"
+	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,7 +83,7 @@ func Test_handler_AddUrl(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlerSU.AddUrl)
+			h := http.HandlerFunc(handlerSU.AddURL)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 
@@ -153,6 +153,7 @@ func Test_handler_GetUrl(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res, _ := testRequest(t, ts, http.MethodGet, tt.request)
+			defer res.Body.Close()
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
 		})
