@@ -36,14 +36,14 @@ func (d *db) Add(url string) (string, error) {
 		d.Unlock()
 	}
 
-	newId := d.generateID()
+	newID := d.generateID()
 	d.Lock()
-	d.urls[newId] = ShortURL{
-		ID:        newId,
+	d.urls[newID] = ShortURL{
+		ID:        newID,
 		OriginURL: url,
 	}
 	d.Unlock()
-	return newId, nil
+	return newID, nil
 }
 
 func (d *db) GetByID(id string) (ShortURL, error) {

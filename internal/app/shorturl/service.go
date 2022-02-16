@@ -17,6 +17,6 @@ func (s *Service) Add(originURL string) (string, error) {
 	return newID, err
 }
 
-func (s *Service) GetByID(IdURL string) (db.ShortURL, error) {
-	return s.storage.GetByID(IdURL)
+func (s *Service) GetByID(IDURL string) (db.ShortURL, error) {
+	return s.storage.GetByID(IDURL)
 }

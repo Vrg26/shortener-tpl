@@ -58,19 +58,19 @@ func (h *handler) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	originUrl := string(b)
-	if originUrl == "" {
+	originURL := string(b)
+	if originURL == "" {
 		http.Error(w, "url is required", http.StatusBadRequest)
 		return
 	}
 
-	_, err = url.ParseRequestURI(originUrl)
+	_, err = url.ParseRequestURI(originURL)
 	if err != nil {
 		http.Error(w, "url is invalid", http.StatusBadRequest)
 		return
 	}
 
-	newID, err := h.shortURLService.Add(originUrl)
+	newID, err := h.shortURLService.Add(originURL)
 
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
