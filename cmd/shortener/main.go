@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	ServerAddress string `env:"SERVER_ADDRESS" envDefault:":8080"`
-	BaseUrl       string `env:"BASE_URL" envDefault:"http://localhost"`
+	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 }
 
 func main() {
@@ -33,7 +33,7 @@ func runServer(cfg *Config) error {
 
 	st := db.NewMemoryStorage()
 	service := shorturl.NewService(st)
-	handler := shorturl.NewHandler(*service, cfg.BaseUrl)
+	handler := shorturl.NewHandler(*service, cfg.BaseURL)
 	handler.Register(r)
 
 	return http.ListenAndServe(cfg.ServerAddress, r)
