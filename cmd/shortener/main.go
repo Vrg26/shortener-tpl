@@ -11,8 +11,9 @@ import (
 )
 
 type Config struct {
-	ServerAddress string `env:"SERVER_ADDRESS" envDefault:":8080"`
-	BaseURL       string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 func main() {
@@ -31,7 +32,18 @@ func runServer(cfg *Config) error {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	st := db.NewMemoryStorage()
+	var st db.Storage
+	var err error
+
+	if cfg.FileStoragePath == "" {
+		st = db.NewMemoryStorage()
+	} else {
+		st, _ = db.NewFileStorage(cfg.FileStoragePath)
+		if err != nil {
+			return err
+		}
+	}
+
 	service := shorturl.NewService(st)
 	handler := shorturl.NewHandler(*service, cfg.BaseURL)
 	handler.Register(r)
