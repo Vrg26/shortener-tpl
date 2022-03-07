@@ -14,10 +14,11 @@ var _ handlers.Handler = &handler{}
 
 type handler struct {
 	shortURLService Service
+	baseURL         string
 }
 
-func NewHandler(service Service) *handler {
-	return &handler{shortURLService: service}
+func NewHandler(service Service, baseURL string) *handler {
+	return &handler{shortURLService: service, baseURL: baseURL}
 }
 
 func (h *handler) Register(r *chi.Mux) {
@@ -67,7 +68,7 @@ func (h *handler) AddShorten(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-	res, err := json.Marshal(Result{Result: fmt.Sprintf("http://%s/%s", r.Host, newID)})
+	res, err := json.Marshal(Result{Result: fmt.Sprintf("%s/%s", h.baseURL, newID)})
 	w.WriteHeader(http.StatusCreated)
 	w.Write(res)
 }
@@ -112,5 +113,5 @@ func (h *handler) AddURL(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf("http://%s/%s", r.Host, newID)))
+	w.Write([]byte(fmt.Sprintf("%s/%s", h.baseURL, newID)))
 }

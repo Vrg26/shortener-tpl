@@ -32,7 +32,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 func Test_handler_AddUrl(t *testing.T) {
 	st := db.NewMemoryStorage()
 	s := NewService(st)
-	handlerSU := NewHandler(*s)
+	handlerSU := NewHandler(*s, "http://localhost")
 	type want struct {
 		contentType string
 		statusCode  int
@@ -106,7 +106,7 @@ func Test_handler_AddUrl(t *testing.T) {
 func Test_handler_AddShorten(t *testing.T) {
 	st := db.NewMemoryStorage()
 	s := NewService(st)
-	handlerSU := NewHandler(*s)
+	handlerSU := NewHandler(*s, "http://localhost")
 	type want struct {
 		contentType string
 		statusCode  int
@@ -174,7 +174,7 @@ func Test_handler_GetUrl(t *testing.T) {
 	r := chi.NewRouter()
 	st := db.NewMemoryStorage()
 	s := NewService(st)
-	h := NewHandler(*s)
+	h := NewHandler(*s, "")
 	h.Register(r)
 
 	idURL, err := st.Add("https://practicum.yandex.ru")
