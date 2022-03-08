@@ -22,6 +22,7 @@ func NewHandler(service Service, baseURL string) *handler {
 }
 
 func (h *handler) Register(r *chi.Mux) {
+
 	r.Get("/{ID}", h.GetURL)
 	r.Post("/", h.AddTextURL)
 	r.Post("/api/shorten", h.AddJsonURL)
@@ -63,6 +64,12 @@ func (h *handler) AddJsonURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+
+	res, err := json.Marshal(ResponseURL{Result: fmt.Sprintf("%s/%s", h.baseURL, newID)})
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(res)
