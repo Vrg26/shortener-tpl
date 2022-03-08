@@ -1,8 +1,8 @@
 package shorturl
 
-type Shorten struct {
-	Url string `json:"url"`
+type RequestURL struct {
+	URL string `json:"url"`
 }
-type Result struct {
+type ResponseURL struct {
 	Result string `json:"result"`
 }

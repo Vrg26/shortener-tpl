@@ -64,13 +64,13 @@ func (f *dbFile) GetByURL(url string) (string, error) {
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
-		var shortUrl ShortURL
-		err := json.Unmarshal(scanner.Bytes(), &shortUrl)
+		var sURL ShortURL
+		err := json.Unmarshal(scanner.Bytes(), &sURL)
 		if err != nil {
 			return "", err
 		}
-		if shortUrl.OriginURL == url {
-			return shortUrl.ID, nil
+		if sURL.OriginURL == url {
+			return sURL.ID, nil
 		}
 	}
 	return "", nil

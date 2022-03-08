@@ -84,7 +84,7 @@ func Test_handler_AddUrl(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlerSU.AddURL)
+			h := http.HandlerFunc(handlerSU.AddTextURL)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 
@@ -149,7 +149,7 @@ func Test_handler_AddShorten(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlerSU.AddShorten)
+			h := http.HandlerFunc(handlerSU.AddJsonURL)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 
@@ -158,7 +158,7 @@ func Test_handler_AddShorten(t *testing.T) {
 
 			if tt.want.statusCode == http.StatusCreated {
 
-				var result Result
+				var result ResponseURL
 				err := json.NewDecoder(res.Body).Decode(&result)
 				require.NoError(t, err)
 				err = res.Body.Close()

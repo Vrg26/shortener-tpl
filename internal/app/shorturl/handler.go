@@ -23,8 +23,8 @@ func NewHandler(service Service, baseURL string) *handler {
 
 func (h *handler) Register(r *chi.Mux) {
 	r.Get("/{ID}", h.GetURL)
-	r.Post("/", h.AddURL)
-	r.Post("/api/shorten", h.AddShorten)
+	r.Post("/", h.AddTextURL)
+	r.Post("/api/shorten", h.AddJsonURL)
 }
 
 func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
@@ -41,39 +41,34 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, shortURL.OriginURL, http.StatusTemporaryRedirect)
 }
 
-func (h *handler) AddShorten(w http.ResponseWriter, r *http.Request) {
-	var v Shorten
-
-	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+func (h *handler) AddJsonURL(w http.ResponseWriter, r *http.Request) {
+	var rBody RequestURL
+	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if v.Url == "" {
+	if rBody.URL == "" {
 		http.Error(w, "url is required", http.StatusBadRequest)
 		return
 	}
 
-	_, err := url.ParseRequestURI(v.Url)
-	if err != nil {
+	if _, err := url.ParseRequestURI(rBody.URL); err != nil {
 		http.Error(w, "url is invalid", http.StatusBadRequest)
 		return
 	}
 
-	newID, err := h.shortURLService.Add(v.Url)
-
+	newID, err := h.shortURLService.Add(rBody.URL)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	res, err := json.Marshal(Result{Result: fmt.Sprintf("%s/%s", h.baseURL, newID)})
 	w.WriteHeader(http.StatusCreated)
 	w.Write(res)
 }
 
-func (h *handler) AddURL(w http.ResponseWriter, r *http.Request) {
+func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[1:]
 	if id != "" {
 		http.NotFound(w, r)
@@ -87,7 +82,6 @@ func (h *handler) AddURL(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	b, err := io.ReadAll(r.Body)
-
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
@@ -99,18 +93,17 @@ func (h *handler) AddURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = url.ParseRequestURI(originURL)
-	if err != nil {
+	if _, err = url.ParseRequestURI(originURL); err != nil {
 		http.Error(w, "url is invalid", http.StatusBadRequest)
 		return
 	}
 
 	newID, err := h.shortURLService.Add(originURL)
-
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fmt.Sprintf("%s/%s", h.baseURL, newID)))
