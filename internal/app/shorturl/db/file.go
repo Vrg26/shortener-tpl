@@ -6,13 +6,11 @@ import (
 	"errors"
 	"math/rand"
 	"os"
-	"sync"
 )
 
 var _ Storage = &dbFile{}
 
 type dbFile struct {
-	sync.Mutex
 	filePath string
 }
 
