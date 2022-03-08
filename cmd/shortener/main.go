@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/caarlos0/env/v6"
@@ -22,6 +23,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "server address")
+	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "base url")
+	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "file storage path")
+
+	flag.Parse()
+
 	log.Fatal(runServer(&cfg))
 }
 
