@@ -59,6 +59,8 @@ func (f *dbFile) GetByURL(url string) (string, error) {
 		return "", err
 	}
 
+	defer file.Close()
+
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
@@ -80,7 +82,7 @@ func (f *dbFile) GetByID(id string) (ShortURL, error) {
 	if err != nil {
 		return ShortURL{}, err
 	}
-
+	defer file.Close()
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
