@@ -46,7 +46,7 @@ func runServer(cfg *Config) error {
 	if cfg.FileStoragePath == "" {
 		st = db.NewMemoryStorage()
 	} else {
-		st, _ = db.NewFileStorage(cfg.FileStoragePath)
+		st, err = db.NewFileStorage(cfg.FileStoragePath)
 		if err != nil {
 			return err
 		}
