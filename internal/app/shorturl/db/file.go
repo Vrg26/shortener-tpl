@@ -16,7 +16,7 @@ type dbFile struct {
 
 func (f *dbFile) Add(url string) (string, error) {
 
-	newID, err := f.GetByURL(url)
+	newID, _ := f.GetByURL(url)
 	if newID != "" {
 		return newID, nil
 	}
