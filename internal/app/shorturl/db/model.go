@@ -1,6 +1,6 @@
 package db
 
 type ShortURL struct {
-	ID        string
-	OriginURL string
+	ID        string `json:"id"`
+	OriginURL string `json:"origin_url"`
 }

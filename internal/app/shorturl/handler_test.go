@@ -2,6 +2,7 @@ package shorturl
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 func Test_handler_AddUrl(t *testing.T) {
 	st := db.NewMemoryStorage()
 	s := NewService(st)
-	handlerSU := NewHandler(*s)
+	handlerSU := NewHandler(*s, "http://localhost")
 	type want struct {
 		contentType string
 		statusCode  int
@@ -83,7 +84,7 @@ func Test_handler_AddUrl(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlerSU.AddURL)
+			h := http.HandlerFunc(handlerSU.AddTextURL)
 			h.ServeHTTP(w, request)
 			res := w.Result()
 
@@ -102,11 +103,78 @@ func Test_handler_AddUrl(t *testing.T) {
 	}
 }
 
+func Test_handler_AddShorten(t *testing.T) {
+	st := db.NewMemoryStorage()
+	s := NewService(st)
+	handlerSU := NewHandler(*s, "http://localhost")
+	type want struct {
+		contentType string
+		statusCode  int
+	}
+	tests := []struct {
+		name    string
+		request string
+		body    string
+		want    want
+	}{
+		{
+			name:    "success test",
+			request: "/api/shorten",
+			body:    `{ "url":"https://twitter.com"}`,
+			want: want{
+				contentType: "application/json; charset=utf-8",
+				statusCode:  201,
+			},
+		},
+		{
+			name:    "should return error bad request. Empty body",
+			request: "/api/shorten",
+			body:    "",
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+			},
+		},
+		{
+			name:    "should return error bad request. Invalid URL",
+			request: "/api/shorten",
+			body:    "testestset",
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
+			w := httptest.NewRecorder()
+			h := http.HandlerFunc(handlerSU.AddJSONURL)
+			h.ServeHTTP(w, request)
+			res := w.Result()
+
+			assert.Equal(t, tt.want.statusCode, res.StatusCode)
+			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
+
+			if tt.want.statusCode == http.StatusCreated {
+
+				var result ResponseURL
+				err := json.NewDecoder(res.Body).Decode(&result)
+				require.NoError(t, err)
+				err = res.Body.Close()
+				require.NoError(t, err)
+				_, err = url.ParseRequestURI(result.Result)
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func Test_handler_GetUrl(t *testing.T) {
 	r := chi.NewRouter()
 	st := db.NewMemoryStorage()
 	s := NewService(st)
-	h := NewHandler(*s)
+	h := NewHandler(*s, "")
 	h.Register(r)
 
 	idURL, err := st.Add("https://practicum.yandex.ru")
