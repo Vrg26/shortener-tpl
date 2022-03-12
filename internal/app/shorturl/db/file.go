@@ -8,18 +8,27 @@ import (
 	"os"
 )
 
-var _ Storage = &dbFile{}
-
 type dbFile struct {
 	filePath string
 }
 
+func NewFileStorage(filePath string) *dbFile {
+	return &dbFile{
+		filePath: filePath,
+	}
+}
+
 func (f *dbFile) Add(url string) (string, error) {
 
-	newID, _ := f.GetByURL(url)
+	newID, err := f.GetByURL(url)
+	if err != nil {
+		return "", nil
+	}
+
 	if newID != "" {
 		return newID, nil
 	}
+
 	newID = f.generateID()
 
 	sURL := ShortURL{
@@ -86,13 +95,13 @@ func (f *dbFile) GetByID(id string) (ShortURL, error) {
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
-		var shortUrl ShortURL
-		err := json.Unmarshal(scanner.Bytes(), &shortUrl)
+		var sURL ShortURL
+		err := json.Unmarshal(scanner.Bytes(), &sURL)
 		if err != nil {
 			return ShortURL{}, err
 		}
-		if shortUrl.ID == id {
-			return shortUrl, nil
+		if sURL.ID == id {
+			return sURL, nil
 		}
 	}
 
@@ -107,10 +116,4 @@ func (f *dbFile) generateID() string {
 		uniqueRuneArray[i] = chars[rand.Intn(len(chars))]
 	}
 	return string(uniqueRuneArray)
-}
-
-func NewFileStorage(filePath string) (Storage, error) {
-	return &dbFile{
-		filePath: filePath,
-	}, nil
 }

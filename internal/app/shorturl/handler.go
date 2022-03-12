@@ -25,7 +25,7 @@ func (h *handler) Register(r *chi.Mux) {
 
 	r.Get("/{ID}", h.GetURL)
 	r.Post("/", h.AddTextURL)
-	r.Post("/api/shorten", h.AddJsonURL)
+	r.Post("/api/shorten", h.AddJSONURL)
 }
 
 func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +42,7 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, shortURL.OriginURL, http.StatusTemporaryRedirect)
 }
 
-func (h *handler) AddJsonURL(w http.ResponseWriter, r *http.Request) {
+func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 	var rBody RequestURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

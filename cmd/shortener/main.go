@@ -41,15 +41,11 @@ func runServer(cfg *Config) error {
 	r.Use(middleware.Recoverer)
 
 	var st db.Storage
-	var err error
 
 	if cfg.FileStoragePath == "" {
 		st = db.NewMemoryStorage()
 	} else {
-		st, err = db.NewFileStorage(cfg.FileStoragePath)
-		if err != nil {
-			return err
-		}
+		st = db.NewFileStorage(cfg.FileStoragePath)
 	}
 
 	service := shorturl.NewService(st)

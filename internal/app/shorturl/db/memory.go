@@ -8,11 +8,15 @@ import (
 	"sync"
 )
 
-var _ Storage = &dbMemory{}
-
 type dbMemory struct {
 	sync.Mutex
 	urls map[string]ShortURL
+}
+
+func NewMemoryStorage() *dbMemory {
+	return &dbMemory{
+		urls: make(map[string]ShortURL),
+	}
 }
 
 func (d *dbMemory) generateID() string {
@@ -52,10 +56,4 @@ func (d *dbMemory) GetByID(id string) (ShortURL, error) {
 	}
 
 	return ShortURL{}, errors.New("short url not found")
-}
-
-func NewMemoryStorage() Storage {
-	return &dbMemory{
-		urls: make(map[string]ShortURL),
-	}
 }
