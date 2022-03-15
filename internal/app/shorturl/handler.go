@@ -1,7 +1,6 @@
 package shorturl
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"github.com/Vrg26/shortener-tpl/internal/app/handlers"
@@ -45,21 +44,8 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 
-	var reader io.Reader
-	if r.Header.Get("Content-Encoding") == "gzip" {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-		defer r.Body.Close()
-	}
-
 	var rBody RequestURL
-	if err := json.NewDecoder(reader).Decode(&rBody); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -87,7 +73,7 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	io.WriteString(w, string(res))
+	w.Write(res)
 }
 
 func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
@@ -100,24 +86,13 @@ func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "url is required", http.StatusBadRequest)
 		return
 	}
-	var reader io.Reader
-	if r.Header.Get("Content-Encoding") == "gzip" {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		reader = gz
-		defer gz.Close()
-	} else {
-		reader = r.Body
-		defer r.Body.Close()
-	}
 
-	b, err := io.ReadAll(reader)
+	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+	defer r.Body.Close()
 
 	originURL := string(b)
 	if originURL == "" {
