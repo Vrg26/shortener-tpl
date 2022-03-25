@@ -22,10 +22,37 @@ func NewHandler(service Service, baseURL string) *handler {
 }
 
 func (h *handler) Register(r *chi.Mux) {
-
 	r.Get("/{ID}", h.GetURL)
+	r.Get("/api/user/urls", h.GetURLsByUserID)
 	r.Post("/", h.AddTextURL)
 	r.Post("/api/shorten", h.AddJSONURL)
+}
+
+func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value("user").(uint64)
+	urls, err := h.shortURLService.GetURLsByUserID(userId)
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	respUrls := make([]RespShortUrl, len(urls))
+	if len(urls) == 0 {
+		resp, _ := json.Marshal(respUrls)
+		w.WriteHeader(http.StatusNoContent)
+		w.Write(resp)
+		return
+	}
+
+	for index, url := range urls {
+		respUrls[index] = RespShortUrl{
+			ShortURL:    fmt.Sprintf("%s/%s", h.baseURL, url.ID),
+			OriginalURL: url.OriginURL,
+		}
+	}
+	resp, err := json.Marshal(respUrls)
+
+	w.Write(resp)
 }
 
 func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +70,7 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
-
+	userId, _ := r.Context().Value("user").(uint64)
 	var rBody RequestURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -60,13 +87,13 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newID, err := h.shortURLService.Add(rBody.URL)
+	newID, err := h.shortURLService.Add(rBody.URL, userId)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
 
-	res, err := json.Marshal(ResponseURL{Result: fmt.Sprintf("%s/%s", h.baseURL, newID)})
+	res, err := json.Marshal(RespResultURL{Result: fmt.Sprintf("%s/%s", h.baseURL, newID)})
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 	}
@@ -77,6 +104,7 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
+	userId, _ := r.Context().Value("user").(uint64)
 	id := r.URL.Path[1:]
 	if id != "" {
 		http.NotFound(w, r)
@@ -105,7 +133,7 @@ func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newID, err := h.shortURLService.Add(originURL)
+	newID, err := h.shortURLService.Add(originURL, userId)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return

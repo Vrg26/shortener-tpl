@@ -2,7 +2,6 @@ package shorturl
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/go-chi/chi/v5"
@@ -55,16 +54,6 @@ func Test_handler_AddUrl(t *testing.T) {
 			},
 		},
 		{
-			name:    "success test",
-			request: "/",
-			body:    "https://twitter.com",
-			want: want{
-				contentType: "text/plain; charset=utf-8",
-				statusCode:  201,
-			},
-			isgzip: true,
-		},
-		{
 			name:    "should return error bad request. Empty body",
 			request: "/",
 			body:    "",
@@ -94,21 +83,7 @@ func Test_handler_AddUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var request *http.Request
-
-			if tt.isgzip == true {
-				var buf bytes.Buffer
-				wgz := gzip.NewWriter(&buf)
-				_, err := wgz.Write([]byte(tt.body))
-				require.NoError(t, err)
-
-				wgz.Close()
-
-				request = httptest.NewRequest(http.MethodPost, tt.request, &buf)
-				request.Header.Set("Content-Encoding", "gzip")
-			} else {
-				request = httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
-			}
+			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
 
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(handlerSU.AddTextURL)
@@ -155,16 +130,6 @@ func Test_handler_AddJSONURL(t *testing.T) {
 			},
 		},
 		{
-			name:    "success test",
-			request: "/api/shorten",
-			body:    `{ "url":"https://twitter.com"}`,
-			want: want{
-				contentType: "application/json; charset=utf-8",
-				statusCode:  201,
-			},
-			isgzip: true,
-		},
-		{
 			name:    "should return error bad request. Empty body",
 			request: "/api/shorten",
 			body:    "",
@@ -185,21 +150,7 @@ func Test_handler_AddJSONURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var request *http.Request
-
-			if tt.isgzip == true {
-				var buf bytes.Buffer
-				wgz := gzip.NewWriter(&buf)
-				_, err := wgz.Write([]byte(tt.body))
-				require.NoError(t, err)
-
-				wgz.Close()
-
-				request = httptest.NewRequest(http.MethodPost, tt.request, &buf)
-				request.Header.Set("Content-Encoding", "gzip")
-			} else {
-				request = httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
-			}
+			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
 
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(handlerSU.AddJSONURL)
@@ -211,7 +162,7 @@ func Test_handler_AddJSONURL(t *testing.T) {
 
 			if tt.want.statusCode == http.StatusCreated {
 
-				var result ResponseURL
+				var result RespResultURL
 				err := json.NewDecoder(res.Body).Decode(&result)
 				require.NoError(t, err)
 				err = res.Body.Close()
@@ -230,7 +181,7 @@ func Test_handler_GetUrl(t *testing.T) {
 	h := NewHandler(*s, "")
 	h.Register(r)
 
-	idURL, err := st.Add("https://practicum.yandex.ru")
+	idURL, err := st.Add("https://www.google.ru", 1234)
 	require.NoError(t, err)
 
 	ts := httptest.NewServer(r)
@@ -249,7 +200,7 @@ func Test_handler_GetUrl(t *testing.T) {
 			name:    "success test",
 			request: "/" + idURL,
 			want: want{
-				contentType: "text/html; charset=utf-8",
+				contentType: "text/html; charset=windows-1251",
 				statusCode:  200,
 			},
 		},

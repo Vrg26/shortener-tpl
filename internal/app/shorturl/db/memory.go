@@ -33,7 +33,20 @@ func (d *dbMemory) generateID() string {
 	}
 }
 
-func (d *dbMemory) Add(url string) (string, error) {
+func (d *dbMemory) GetURLsByUserID(userId uint64) ([]ShortURL, error) {
+	if d.urls == nil {
+		return []ShortURL{}, nil
+	}
+	var resultURLs []ShortURL
+	for _, itemMap := range d.urls {
+		if itemMap.UserID == userId {
+			resultURLs = append(resultURLs, itemMap)
+		}
+	}
+	return resultURLs, nil
+}
+
+func (d *dbMemory) Add(url string, userId uint64) (string, error) {
 	if d.urls == nil {
 		d.Lock()
 		d.urls = make(map[string]ShortURL)
@@ -45,6 +58,7 @@ func (d *dbMemory) Add(url string) (string, error) {
 	d.urls[newID] = ShortURL{
 		ID:        newID,
 		OriginURL: url,
+		UserID:    userId,
 	}
 	d.Unlock()
 	return newID, nil

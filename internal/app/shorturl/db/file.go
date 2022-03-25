@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand"
 	"os"
 )
@@ -18,22 +19,23 @@ func NewFileStorage(filePath string) *dbFile {
 	}
 }
 
-func (f *dbFile) Add(url string) (string, error) {
+func (f *dbFile) Add(url string, userId uint64) (string, error) {
 
-	newID, err := f.GetByURL(url)
+	shortUrl, err := f.GetByURLAndUserId(url, userId)
 	if err != nil {
 		return "", nil
 	}
-
-	if newID != "" {
-		return newID, nil
+	fmt.Println(shortUrl.UserID)
+	if shortUrl.ID != "" {
+		return shortUrl.ID, nil
 	}
 
-	newID = f.generateID()
+	newID := f.generateID()
 
 	sURL := ShortURL{
 		ID:        newID,
 		OriginURL: url,
+		UserID:    userId,
 	}
 
 	file, err := os.OpenFile(f.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
@@ -61,11 +63,35 @@ func (f *dbFile) Add(url string) (string, error) {
 	return newID, nil
 }
 
-func (f *dbFile) GetByURL(url string) (string, error) {
+func (f *dbFile) GetURLsByUserID(userID uint64) ([]ShortURL, error) {
+	file, err := os.OpenFile(f.filePath, os.O_RDONLY, 0777)
+
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	var resultUrls []ShortURL
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		var sURL ShortURL
+		err := json.Unmarshal(scanner.Bytes(), &sURL)
+		if err != nil {
+			return nil, err
+		}
+		if sURL.UserID == userID {
+			resultUrls = append(resultUrls, sURL)
+		}
+	}
+
+	return resultUrls, nil
+}
+
+func (f *dbFile) GetByURLAndUserId(url string, userId uint64) (ShortURL, error) {
 	file, err := os.OpenFile(f.filePath, os.O_RDONLY|os.O_CREATE, 0777)
 
 	if err != nil {
-		return "", err
+		return ShortURL{}, err
 	}
 
 	defer file.Close()
@@ -76,13 +102,13 @@ func (f *dbFile) GetByURL(url string) (string, error) {
 		var sURL ShortURL
 		err := json.Unmarshal(scanner.Bytes(), &sURL)
 		if err != nil {
-			return "", err
+			return ShortURL{}, err
 		}
-		if sURL.OriginURL == url {
-			return sURL.ID, nil
+		if sURL.OriginURL == url && sURL.UserID == userId {
+			return sURL, nil
 		}
 	}
-	return "", nil
+	return ShortURL{}, nil
 }
 
 func (f *dbFile) GetByID(id string) (ShortURL, error) {
