@@ -2,6 +2,7 @@ package shorturl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/go-chi/chi/v5"
@@ -181,7 +182,7 @@ func Test_handler_GetUrl(t *testing.T) {
 	h := NewHandler(*s, "")
 	h.Register(r)
 
-	idURL, err := st.Add("https://www.google.ru", 1234)
+	idURL, err := st.Add(context.Background(), "https://www.google.ru", 1234)
 	require.NoError(t, err)
 
 	ts := httptest.NewServer(r)
