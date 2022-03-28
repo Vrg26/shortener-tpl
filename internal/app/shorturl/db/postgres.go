@@ -23,9 +23,9 @@ func (p *dbPostgres) Add(ctx context.Context, url string, userId uint32) (string
 	if err != nil {
 		return "", err
 	}
-	shorturl, err := p.GetByUrl(ctx, url)
+	shorturl, err := p.GetByURLAndUserId(ctx, url, userId)
 
-	if err == nil && shorturl.UserID == userId {
+	if err == nil {
 		return shorturl.ID, nil
 	}
 
@@ -36,8 +36,8 @@ func (p *dbPostgres) Add(ctx context.Context, url string, userId uint32) (string
 	return id, nil
 }
 
-func (p *dbPostgres) GetByUrl(ctx context.Context, url string) (ShortURL, error) {
-	row := p.db.QueryRowContext(ctx, "SELECT shorturl, originurl, userid FROM urls WHERE originurl = $1", url)
+func (p *dbPostgres) GetByURLAndUserId(ctx context.Context, url string, userId uint32) (ShortURL, error) {
+	row := p.db.QueryRowContext(ctx, "SELECT shorturl, originurl, userid FROM urls WHERE originurl = $1 AND userid = $2", url, userId)
 	var result ShortURL
 	if err := row.Scan(&result.ID, &result.OriginURL, &result.UserID); err != nil {
 		return result, err
