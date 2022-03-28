@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -33,7 +34,7 @@ func (d *dbMemory) generateID() string {
 	}
 }
 
-func (d *dbMemory) GetURLsByUserID(userId uint64) ([]ShortURL, error) {
+func (d *dbMemory) GetURLsByUserID(ctx context.Context, userId uint32) ([]ShortURL, error) {
 	if d.urls == nil {
 		return []ShortURL{}, nil
 	}
@@ -46,7 +47,7 @@ func (d *dbMemory) GetURLsByUserID(userId uint64) ([]ShortURL, error) {
 	return resultURLs, nil
 }
 
-func (d *dbMemory) Add(url string, userId uint64) (string, error) {
+func (d *dbMemory) Add(ctx context.Context, url string, userId uint32) (string, error) {
 	if d.urls == nil {
 		d.Lock()
 		d.urls = make(map[string]ShortURL)
@@ -64,7 +65,7 @@ func (d *dbMemory) Add(url string, userId uint64) (string, error) {
 	return newID, nil
 }
 
-func (d *dbMemory) GetByID(id string) (ShortURL, error) {
+func (d *dbMemory) GetByID(ctx context.Context, id string) (ShortURL, error) {
 	if ShortURL, ok := d.urls[id]; ok {
 		return ShortURL, nil
 	}

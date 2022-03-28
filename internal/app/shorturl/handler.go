@@ -1,13 +1,16 @@
 package shorturl
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/Vrg26/shortener-tpl/internal/app/handlers"
 	"github.com/go-chi/chi/v5"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 var _ handlers.Handler = &handler{}
@@ -29,8 +32,10 @@ func (h *handler) Register(r *chi.Mux) {
 }
 
 func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
-	userId := r.Context().Value("user").(uint64)
-	urls, err := h.shortURLService.GetURLsByUserID(userId)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	userId := ctx.Value("user").(uint32)
+	urls, err := h.shortURLService.GetURLsByUserID(ctx, userId)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err != nil {
@@ -61,7 +66,11 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Empty path", http.StatusBadRequest)
 		return
 	}
-	shortURL, err := h.shortURLService.GetByID(id)
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	shortURL, err := h.shortURLService.GetByID(ctx, id)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -70,7 +79,7 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
-	userId, _ := r.Context().Value("user").(uint64)
+	userId, _ := r.Context().Value("user").(uint32)
 	var rBody RequestURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -86,9 +95,12 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "url is invalid", http.StatusBadRequest)
 		return
 	}
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
 
-	newID, err := h.shortURLService.Add(rBody.URL, userId)
+	newID, err := h.shortURLService.Add(ctx, rBody.URL, userId)
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
@@ -104,7 +116,7 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
-	userId, _ := r.Context().Value("user").(uint64)
+	userId, _ := r.Context().Value("user").(uint32)
 	id := r.URL.Path[1:]
 	if id != "" {
 		http.NotFound(w, r)
@@ -132,8 +144,10 @@ func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "url is invalid", http.StatusBadRequest)
 		return
 	}
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
 
-	newID, err := h.shortURLService.Add(originURL, userId)
+	newID, err := h.shortURLService.Add(ctx, originURL, userId)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return

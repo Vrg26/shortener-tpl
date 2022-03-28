@@ -10,6 +10,8 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx"
 	_ "github.com/lib/pq"
 	"log"
@@ -50,21 +52,33 @@ func runServer(cfg *Config) error {
 	r.Use(middlewares.Auth(cfg.ServerAddress))
 	r.Use(middlewares.Gzip)
 
-	var st db.Storage
-	if cfg.FileStoragePath == "" {
-		st = db.NewMemoryStorage()
+	var service *shorturl.Service
+	if cfg.DataBaseDSN != "" {
+		dbPostgres, err := sql.Open("postgres", cfg.DataBaseDSN)
+
+		if err != nil {
+			return err
+		}
+		defer dbPostgres.Close()
+
+		r.Get("/ping", PingDB(dbPostgres))
+
+		st := db.NewPostgresStorage(dbPostgres)
+
+		if err := st.MigrateUp("file://migrations"); err != nil {
+			return err
+		}
+
+		service = shorturl.NewService(st)
+
+	} else if cfg.FileStoragePath == "" {
+		st := db.NewMemoryStorage()
+		service = shorturl.NewService(st)
 	} else {
-		st = db.NewFileStorage(cfg.FileStoragePath)
+		st := db.NewFileStorage(cfg.FileStoragePath)
+		service = shorturl.NewService(st)
 	}
 
-	db, err := sql.Open("postgres", cfg.DataBaseDSN)
-
-	if err == nil {
-		r.Get("/ping", PingDB(db))
-		defer db.Close()
-	}
-
-	service := shorturl.NewService(st)
 	handler := shorturl.NewHandler(*service, cfg.BaseURL)
 	handler.Register(r)
 	return http.ListenAndServe(cfg.ServerAddress, r)

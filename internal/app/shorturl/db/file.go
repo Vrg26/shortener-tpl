@@ -2,6 +2,7 @@ package db
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,7 +20,7 @@ func NewFileStorage(filePath string) *dbFile {
 	}
 }
 
-func (f *dbFile) Add(url string, userId uint64) (string, error) {
+func (f *dbFile) Add(ctx context.Context, url string, userId uint32) (string, error) {
 
 	shortUrl, err := f.GetByURLAndUserId(url, userId)
 	if err != nil {
@@ -63,7 +64,7 @@ func (f *dbFile) Add(url string, userId uint64) (string, error) {
 	return newID, nil
 }
 
-func (f *dbFile) GetURLsByUserID(userID uint64) ([]ShortURL, error) {
+func (f *dbFile) GetURLsByUserID(ctx context.Context, userID uint32) ([]ShortURL, error) {
 	file, err := os.OpenFile(f.filePath, os.O_RDONLY, 0777)
 
 	if err != nil {
@@ -87,7 +88,7 @@ func (f *dbFile) GetURLsByUserID(userID uint64) ([]ShortURL, error) {
 	return resultUrls, nil
 }
 
-func (f *dbFile) GetByURLAndUserId(url string, userId uint64) (ShortURL, error) {
+func (f *dbFile) GetByURLAndUserId(url string, userId uint32) (ShortURL, error) {
 	file, err := os.OpenFile(f.filePath, os.O_RDONLY|os.O_CREATE, 0777)
 
 	if err != nil {
@@ -111,7 +112,7 @@ func (f *dbFile) GetByURLAndUserId(url string, userId uint64) (ShortURL, error) 
 	return ShortURL{}, nil
 }
 
-func (f *dbFile) GetByID(id string) (ShortURL, error) {
+func (f *dbFile) GetByID(ctx context.Context, id string) (ShortURL, error) {
 	file, err := os.OpenFile(f.filePath, os.O_RDONLY|os.O_CREATE, 0777)
 
 	if err != nil {
