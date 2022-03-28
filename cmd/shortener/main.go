@@ -78,7 +78,6 @@ func runServer(cfg *Config) error {
 		st := db.NewFileStorage(cfg.FileStoragePath)
 		service = shorturl.NewService(st)
 	}
-
 	handler := shorturl.NewHandler(*service, cfg.BaseURL)
 	handler.Register(r)
 	return http.ListenAndServe(cfg.ServerAddress, r)

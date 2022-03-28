@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Vrg26/shortener-tpl/internal/app/handlers"
+	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"log"
@@ -29,6 +30,7 @@ func (h *handler) Register(r *chi.Mux) {
 	r.Get("/api/user/urls", h.GetURLsByUserID)
 	r.Post("/", h.AddTextURL)
 	r.Post("/api/shorten", h.AddJSONURL)
+	r.Post("/api/shorten/batch", h.AddBatchURL)
 }
 
 func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +43,7 @@ func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	respUrls := make([]RespShortUrl, len(urls))
+	respUrls := make([]RespShortURL, len(urls))
 	if len(urls) == 0 {
 		resp, _ := json.Marshal(respUrls)
 		w.WriteHeader(http.StatusNoContent)
@@ -50,7 +52,7 @@ func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for index, url := range urls {
-		respUrls[index] = RespShortUrl{
+		respUrls[index] = RespShortURL{
 			ShortURL:    fmt.Sprintf("%s/%s", h.baseURL, url.ID),
 			OriginalURL: url.OriginURL,
 		}
@@ -76,6 +78,53 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, shortURL.OriginURL, http.StatusTemporaryRedirect)
+}
+
+func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
+	userId, _ := r.Context().Value("user").(uint32)
+	var rBody []RequestBatchURL
+	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	var shortUrls []db.ShortURL
+	for _, reqUrl := range rBody {
+		if reqUrl.OriginalURL == "" {
+			http.Error(w, fmt.Sprintf("empty url in the record with id %s", reqUrl.CorrelationId), http.StatusBadRequest)
+			return
+		}
+
+		if _, err := url.ParseRequestURI(reqUrl.OriginalURL); err != nil {
+			http.Error(w, fmt.Sprintf("invalid url in the record with id %s", reqUrl.CorrelationId), http.StatusBadRequest)
+			return
+		}
+		shortUrls = append(shortUrls, db.ShortURL{OriginURL: reqUrl.OriginalURL, CorrelationId: reqUrl.CorrelationId})
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	resultURLs, err := h.shortURLService.AddBatchURL(ctx, shortUrls, userId)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	respUrls := make([]ResponseBatchURL, len(resultURLs))
+
+	for index, url := range resultURLs {
+		respUrls[index] = ResponseBatchURL{
+			ShortURL:      fmt.Sprintf("%s/%s", h.baseURL, url.ID),
+			CorrelationId: url.CorrelationId,
+		}
+	}
+	resp, err := json.Marshal(respUrls)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resp)
+
 }
 
 func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {

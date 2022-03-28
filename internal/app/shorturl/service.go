@@ -20,6 +20,10 @@ func (s *Service) Add(ctx context.Context, originURL string, userId uint32) (str
 	return newID, err
 }
 
+func (s *Service) AddBatchURL(ctx context.Context, urls []db.ShortURL, userId uint32) ([]db.ShortURL, error) {
+	return s.storage.AddBatchURL(ctx, urls, userId)
+}
+
 func (s *Service) GetURLsByUserID(ctx context.Context, userId uint32) ([]db.ShortURL, error) {
 	return s.storage.GetURLsByUserID(ctx, userId)
 }

@@ -17,6 +17,41 @@ func NewPostgresStorage(db *sql.DB) *dbPostgres {
 	return &dbPostgres{db: db}
 }
 
+func (p *dbPostgres) AddBatchURL(ctx context.Context, urls []ShortURL, userId uint32) ([]ShortURL, error) {
+	tx, err := p.db.Begin()
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urls (shorturl, originurl, userid) VALUES($1, $2, $3)")
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	for index, url := range urls {
+		id, err := p.generateID()
+
+		if err != nil {
+			return nil, err
+		}
+		if _, err = stmt.ExecContext(ctx, id, url.OriginURL, userId); err != nil {
+			return nil, err
+		}
+		urls[index].ID = id
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+	return urls, nil
+}
+
 func (p *dbPostgres) Add(ctx context.Context, url string, userId uint32) (string, error) {
 	id, err := p.generateID()
 

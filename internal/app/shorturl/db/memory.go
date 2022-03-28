@@ -47,6 +47,17 @@ func (d *dbMemory) GetURLsByUserID(ctx context.Context, userId uint32) ([]ShortU
 	return resultURLs, nil
 }
 
+func (d *dbMemory) AddBatchURL(ctx context.Context, urls []ShortURL, userId uint32) ([]ShortURL, error) {
+	for index, url := range urls {
+		id, err := d.Add(ctx, url.OriginURL, userId)
+		if err != nil {
+			return nil, err
+		}
+		urls[index].ID = id
+	}
+	return urls, nil
+}
+
 func (d *dbMemory) Add(ctx context.Context, url string, userId uint32) (string, error) {
 	if d.urls == nil {
 		d.Lock()
