@@ -2,11 +2,11 @@ package db
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	"math/rand"
 )
 
 type dbPostgres struct {
