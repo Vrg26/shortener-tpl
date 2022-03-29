@@ -7,8 +7,11 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"github.com/Vrg26/shortener-tpl/internal/app/types"
 	"net/http"
 )
+
+const userKey types.ContextKey = 0
 
 func Auth(secretKey string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -29,7 +32,7 @@ func Auth(secretKey string) func(next http.Handler) http.Handler {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
 			}
-			ctx := context.WithValue(r.Context(), "user", id)
+			ctx := context.WithValue(r.Context(), userKey, id)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

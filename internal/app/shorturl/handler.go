@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/Vrg26/shortener-tpl/internal/app/handlers"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
+	"github.com/Vrg26/shortener-tpl/internal/app/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgerrcode"
 	"github.com/lib/pq"
@@ -24,6 +25,8 @@ type handler struct {
 	baseURL         string
 }
 
+const userKey types.ContextKey = 0
+
 func NewHandler(service Service, baseURL string) *handler {
 	return &handler{shortURLService: service, baseURL: baseURL}
 }
@@ -39,7 +42,7 @@ func (h *handler) Register(r *chi.Mux) {
 func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
-	userID := ctx.Value("user").(uint32)
+	userID := ctx.Value(userKey).(uint32)
 	urls, err := h.shortURLService.GetURLsByUserID(ctx, userID)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -88,24 +91,24 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value("user").(uint32)
+	userID, _ := r.Context().Value(userKey).(uint32)
 	var rBody []RequestBatchURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	var shortUrls []db.ShortURL
-	for _, reqUrl := range rBody {
-		if reqUrl.OriginalURL == "" {
-			http.Error(w, fmt.Sprintf("empty url in the record with id %s", reqUrl.CorrelationID), http.StatusBadRequest)
+	for _, reqURL := range rBody {
+		if reqURL.OriginalURL == "" {
+			http.Error(w, fmt.Sprintf("empty url in the record with id %s", reqURL.CorrelationID), http.StatusBadRequest)
 			return
 		}
 
-		if _, err := url.ParseRequestURI(reqUrl.OriginalURL); err != nil {
-			http.Error(w, fmt.Sprintf("invalid url in the record with id %s", reqUrl.CorrelationID), http.StatusBadRequest)
+		if _, err := url.ParseRequestURI(reqURL.OriginalURL); err != nil {
+			http.Error(w, fmt.Sprintf("invalid url in the record with id %s", reqURL.CorrelationID), http.StatusBadRequest)
 			return
 		}
-		shortUrls = append(shortUrls, db.ShortURL{OriginURL: reqUrl.OriginalURL, CorrelationID: reqUrl.CorrelationID})
+		shortUrls = append(shortUrls, db.ShortURL{OriginURL: reqURL.OriginalURL, CorrelationID: reqURL.CorrelationID})
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
@@ -140,7 +143,7 @@ func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value("user").(uint32)
+	userID, _ := r.Context().Value(userKey).(uint32)
 	var rBody RequestURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -197,7 +200,7 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value("user").(uint32)
+	userID, _ := r.Context().Value(userKey).(uint32)
 	id := r.URL.Path[1:]
 	if id != "" {
 		http.NotFound(w, r)
