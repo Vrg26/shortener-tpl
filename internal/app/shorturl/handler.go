@@ -221,6 +221,22 @@ func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
 
 	newID, err := h.shortURLService.Add(ctx, originURL, userId)
 	if err != nil {
+
+		var pe *pq.Error
+		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(string(pe.Code)) {
+
+			newID, err = h.shortURLService.GetByOriginalURL(ctx, originURL)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Server error", http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusConflict)
+			w.Write([]byte(fmt.Sprintf("%s/%s", h.baseURL, newID)))
+			return
+		}
+
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
