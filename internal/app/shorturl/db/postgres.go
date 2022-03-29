@@ -17,7 +17,7 @@ func NewPostgresStorage(db *sql.DB) *dbPostgres {
 	return &dbPostgres{db: db}
 }
 
-func (p *dbPostgres) AddBatchURL(ctx context.Context, urls []ShortURL, userId uint32) ([]ShortURL, error) {
+func (p *dbPostgres) AddBatchURL(ctx context.Context, urls []ShortURL, userID uint32) ([]ShortURL, error) {
 	tx, err := p.db.Begin()
 
 	if err != nil {
@@ -40,7 +40,7 @@ func (p *dbPostgres) AddBatchURL(ctx context.Context, urls []ShortURL, userId ui
 		if err != nil {
 			return nil, err
 		}
-		if _, err = stmt.ExecContext(ctx, id, url.OriginURL, userId); err != nil {
+		if _, err = stmt.ExecContext(ctx, id, url.OriginURL, userID); err != nil {
 			return nil, err
 		}
 		urls[index].ID = id
@@ -52,14 +52,14 @@ func (p *dbPostgres) AddBatchURL(ctx context.Context, urls []ShortURL, userId ui
 	return urls, nil
 }
 
-func (p *dbPostgres) Add(ctx context.Context, url string, userId uint32) (string, error) {
+func (p *dbPostgres) Add(ctx context.Context, url string, userID uint32) (string, error) {
 	id, err := p.generateID()
 
 	if err != nil {
 		return "", err
 	}
 
-	_, err = p.db.ExecContext(ctx, "INSERT INTO urls (shorturl, originurl, userid) VALUES($1, $2, $3)", id, url, userId)
+	_, err = p.db.ExecContext(ctx, "INSERT INTO urls (shorturl, originurl, userid) VALUES($1, $2, $3)", id, url, userID)
 	if err != nil {
 		return "", err
 	}
@@ -75,8 +75,8 @@ func (p *dbPostgres) GetByOriginalURL(ctx context.Context, url string) (string, 
 	return result, nil
 }
 
-func (p *dbPostgres) GetByURLAndUserId(ctx context.Context, url string, userId uint32) (ShortURL, error) {
-	row := p.db.QueryRowContext(ctx, "SELECT shorturl, originurl, userid FROM urls WHERE originurl = $1 AND userid = $2", url, userId)
+func (p *dbPostgres) GetByURLAndUserID(ctx context.Context, url string, userID uint32) (ShortURL, error) {
+	row := p.db.QueryRowContext(ctx, "SELECT shorturl, originurl, userid FROM urls WHERE originurl = $1 AND userid = $2", url, userID)
 	var result ShortURL
 	if err := row.Scan(&result.ID, &result.OriginURL, &result.UserID); err != nil {
 		return result, err
@@ -92,12 +92,13 @@ func (p *dbPostgres) GetByID(ctx context.Context, id string) (ShortURL, error) {
 	}
 	return result, nil
 }
-func (p *dbPostgres) GetURLsByUserID(ctx context.Context, userId uint32) ([]ShortURL, error) {
-	rows, err := p.db.QueryContext(ctx, "SELECT shorturl, originurl, userid FROM urls WHERE userid = $1", userId)
-	var result []ShortURL
+func (p *dbPostgres) GetURLsByUserID(ctx context.Context, userID uint32) ([]ShortURL, error) {
+	rows, err := p.db.QueryContext(ctx, "SELECT shorturl, originurl, userid FROM urls WHERE userid = $1", userID)
 	if err != nil {
 		return nil, err
 	}
+
+	var result []ShortURL
 
 	for rows.Next() {
 		var url ShortURL
@@ -106,6 +107,10 @@ func (p *dbPostgres) GetURLsByUserID(ctx context.Context, userId uint32) ([]Shor
 			return nil, err
 		}
 		result = append(result, url)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return result, nil

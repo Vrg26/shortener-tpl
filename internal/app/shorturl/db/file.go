@@ -19,9 +19,9 @@ func NewFileStorage(filePath string) *dbFile {
 	}
 }
 
-func (f *dbFile) AddBatchURL(ctx context.Context, urls []ShortURL, userId uint32) ([]ShortURL, error) {
+func (f *dbFile) AddBatchURL(ctx context.Context, urls []ShortURL, userID uint32) ([]ShortURL, error) {
 	for index, url := range urls {
-		id, err := f.Add(ctx, url.OriginURL, userId)
+		id, err := f.Add(ctx, url.OriginURL, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -30,15 +30,15 @@ func (f *dbFile) AddBatchURL(ctx context.Context, urls []ShortURL, userId uint32
 	return urls, nil
 }
 
-func (f *dbFile) Add(ctx context.Context, url string, userId uint32) (string, error) {
+func (f *dbFile) Add(ctx context.Context, url string, userID uint32) (string, error) {
 
-	shortUrl, err := f.GetByURLAndUserId(url, userId)
+	shortURL, err := f.GetByURLAndUserID(url, userID)
 	if err != nil {
 		return "", nil
 	}
 
-	if shortUrl.ID != "" {
-		return shortUrl.ID, nil
+	if shortURL.ID != "" {
+		return shortURL.ID, nil
 	}
 
 	newID := f.generateID()
@@ -46,7 +46,7 @@ func (f *dbFile) Add(ctx context.Context, url string, userId uint32) (string, er
 	sURL := ShortURL{
 		ID:        newID,
 		OriginURL: url,
-		UserID:    userId,
+		UserID:    userID,
 	}
 
 	file, err := os.OpenFile(f.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
@@ -122,7 +122,7 @@ func (f *dbFile) GetURLsByUserID(ctx context.Context, userID uint32) ([]ShortURL
 	return resultUrls, nil
 }
 
-func (f *dbFile) GetByURLAndUserId(url string, userId uint32) (ShortURL, error) {
+func (f *dbFile) GetByURLAndUserID(url string, userID uint32) (ShortURL, error) {
 	file, err := os.OpenFile(f.filePath, os.O_RDONLY|os.O_CREATE, 0777)
 
 	if err != nil {
@@ -139,7 +139,7 @@ func (f *dbFile) GetByURLAndUserId(url string, userId uint32) (ShortURL, error) 
 		if err != nil {
 			return ShortURL{}, err
 		}
-		if sURL.OriginURL == url && sURL.UserID == userId {
+		if sURL.OriginURL == url && sURL.UserID == userID {
 			return sURL, nil
 		}
 	}

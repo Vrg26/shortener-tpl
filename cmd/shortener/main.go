@@ -24,9 +24,10 @@ type Config struct {
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	SecretKey       string `env:"SECRET_KEY" envDefault:"secret key"`
-	DataBaseDSN     string `env:"DATABASE_DSN"`
+	DataBaseDSN     string `env:"DATABASE_DSN" envDefault:"postgres://test:test@localhost:5432/shorturl?sslmode=disable"`
 }
 
+//"result": "http://localhost:8080/315ed11c58ed"
 func main() {
 	var cfg Config
 	err := env.Parse(&cfg)
@@ -92,6 +93,5 @@ func PingDB(db *sql.DB) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		return
 	}
 }

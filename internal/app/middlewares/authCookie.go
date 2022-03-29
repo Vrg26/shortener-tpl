@@ -16,15 +16,19 @@ func Auth(secretKey string) func(next http.Handler) http.Handler {
 			var id uint32
 			user, err := r.Cookie("User")
 			if err != nil {
-				idBytes, err := generateBytesUserId()
+				idBytes, err := generateBytesUserID()
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
 				user = createAuthCookie(idBytes, secretKey)
 				http.SetCookie(w, user)
 				id = binary.BigEndian.Uint32(idBytes)
+			} else {
+				id, err = decodeAuthCookie(user.Value, secretKey)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 			}
-			id, err = decodeAuthCookie(user.Value, secretKey)
 			ctx := context.WithValue(r.Context(), "user", id)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -48,7 +52,7 @@ func decodeAuthCookie(value string, secretKey string) (uint32, error) {
 	return 0, http.ErrNoCookie
 }
 
-func generateBytesUserId() ([]byte, error) {
+func generateBytesUserID() ([]byte, error) {
 	id := make([]byte, 8)
 
 	if _, err := rand.Read(id); err != nil {

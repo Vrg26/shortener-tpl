@@ -39,8 +39,8 @@ func (h *handler) Register(r *chi.Mux) {
 func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
-	userId := ctx.Value("user").(uint32)
-	urls, err := h.shortURLService.GetURLsByUserID(ctx, userId)
+	userID := ctx.Value("user").(uint32)
+	urls, err := h.shortURLService.GetURLsByUserID(ctx, userID)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err != nil {
@@ -61,6 +61,10 @@ func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	resp, err := json.Marshal(respUrls)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	w.Write(resp)
 }
@@ -84,7 +88,7 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
-	userId, _ := r.Context().Value("user").(uint32)
+	userID, _ := r.Context().Value("user").(uint32)
 	var rBody []RequestBatchURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -93,21 +97,21 @@ func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
 	var shortUrls []db.ShortURL
 	for _, reqUrl := range rBody {
 		if reqUrl.OriginalURL == "" {
-			http.Error(w, fmt.Sprintf("empty url in the record with id %s", reqUrl.CorrelationId), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("empty url in the record with id %s", reqUrl.CorrelationID), http.StatusBadRequest)
 			return
 		}
 
 		if _, err := url.ParseRequestURI(reqUrl.OriginalURL); err != nil {
-			http.Error(w, fmt.Sprintf("invalid url in the record with id %s", reqUrl.CorrelationId), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("invalid url in the record with id %s", reqUrl.CorrelationID), http.StatusBadRequest)
 			return
 		}
-		shortUrls = append(shortUrls, db.ShortURL{OriginURL: reqUrl.OriginalURL, CorrelationId: reqUrl.CorrelationId})
+		shortUrls = append(shortUrls, db.ShortURL{OriginURL: reqUrl.OriginalURL, CorrelationID: reqUrl.CorrelationID})
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
-	resultURLs, err := h.shortURLService.AddBatchURL(ctx, shortUrls, userId)
+	resultURLs, err := h.shortURLService.AddBatchURL(ctx, shortUrls, userID)
 
 	if err != nil {
 		log.Println(err)
@@ -120,10 +124,15 @@ func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
 	for index, url := range resultURLs {
 		respUrls[index] = ResponseBatchURL{
 			ShortURL:      fmt.Sprintf("%s/%s", h.baseURL, url.ID),
-			CorrelationId: url.CorrelationId,
+			CorrelationID: url.CorrelationID,
 		}
 	}
 	resp, err := json.Marshal(respUrls)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(resp)
@@ -131,7 +140,7 @@ func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
-	userId, _ := r.Context().Value("user").(uint32)
+	userID, _ := r.Context().Value("user").(uint32)
 	var rBody RequestURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -152,7 +161,7 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
-	newID, err := h.shortURLService.Add(ctx, rBody.URL, userId)
+	newID, err := h.shortURLService.Add(ctx, rBody.URL, userID)
 	if err != nil {
 		var pe *pq.Error
 		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(string(pe.Code)) {
@@ -188,7 +197,7 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
-	userId, _ := r.Context().Value("user").(uint32)
+	userID, _ := r.Context().Value("user").(uint32)
 	id := r.URL.Path[1:]
 	if id != "" {
 		http.NotFound(w, r)
@@ -219,7 +228,7 @@ func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
-	newID, err := h.shortURLService.Add(ctx, originURL, userId)
+	newID, err := h.shortURLService.Add(ctx, originURL, userID)
 	if err != nil {
 
 		var pe *pq.Error
