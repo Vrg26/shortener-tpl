@@ -28,6 +28,10 @@ func (s *Service) GetURLsByUserID(ctx context.Context, userId uint32) ([]db.Shor
 	return s.storage.GetURLsByUserID(ctx, userId)
 }
 
+func (s *Service) GetByOriginalURL(ctx context.Context, url string) (string, error) {
+	return s.storage.GetByOriginalURL(ctx, url)
+}
+
 func (s *Service) GetByID(ctx context.Context, IDURL string) (db.ShortURL, error) {
 	return s.storage.GetByID(ctx, IDURL)
 }

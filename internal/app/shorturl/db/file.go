@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/rand"
 	"os"
 )
@@ -37,7 +36,7 @@ func (f *dbFile) Add(ctx context.Context, url string, userId uint32) (string, er
 	if err != nil {
 		return "", nil
 	}
-	fmt.Println(shortUrl.UserID)
+
 	if shortUrl.ID != "" {
 		return shortUrl.ID, nil
 	}
@@ -73,6 +72,30 @@ func (f *dbFile) Add(ctx context.Context, url string, userId uint32) (string, er
 	}
 
 	return newID, nil
+}
+
+func (f *dbFile) GetByOriginalURL(ctx context.Context, url string) (string, error) {
+	file, err := os.OpenFile(f.filePath, os.O_RDONLY|os.O_CREATE, 0777)
+
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		var sURL ShortURL
+		err := json.Unmarshal(scanner.Bytes(), &sURL)
+		if err != nil {
+			return "", err
+		}
+		if sURL.OriginURL == url {
+			return sURL.ID, nil
+		}
+	}
+	return "", nil
 }
 
 func (f *dbFile) GetURLsByUserID(ctx context.Context, userID uint32) ([]ShortURL, error) {

@@ -5,3 +5,5 @@ CREATE TABLE urls (
                       userId bigint,
                       created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX originurl_idx ON urls (originUrl)

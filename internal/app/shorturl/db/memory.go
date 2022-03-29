@@ -34,6 +34,15 @@ func (d *dbMemory) generateID() string {
 	}
 }
 
+func (d *dbMemory) GetByOriginalURL(ctx context.Context, url string) (string, error) {
+	for _, itemMap := range d.urls {
+		if itemMap.OriginURL == url {
+			return itemMap.ID, nil
+		}
+	}
+	return "", errors.New("short url not found")
+}
+
 func (d *dbMemory) GetURLsByUserID(ctx context.Context, userId uint32) ([]ShortURL, error) {
 	if d.urls == nil {
 		return []ShortURL{}, nil

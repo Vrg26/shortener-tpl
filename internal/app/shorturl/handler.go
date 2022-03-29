@@ -3,10 +3,13 @@ package shorturl
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Vrg26/shortener-tpl/internal/app/handlers"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgerrcode"
+	"github.com/lib/pq"
 	"io"
 	"log"
 	"net/http"
@@ -144,11 +147,32 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "url is invalid", http.StatusBadRequest)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
 	newID, err := h.shortURLService.Add(ctx, rBody.URL, userId)
 	if err != nil {
+		var pe *pq.Error
+		if errors.As(err, &pe) && pgerrcode.IsIntegrityConstraintViolation(string(pe.Code)) {
+
+			newID, err = h.shortURLService.GetByOriginalURL(ctx, rBody.URL)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Server error", http.StatusInternalServerError)
+				return
+			}
+
+			res, err := json.Marshal(RespResultURL{Result: fmt.Sprintf("%s/%s", h.baseURL, newID)})
+			if err != nil {
+				http.Error(w, "Server error", http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusConflict)
+			w.Write(res)
+			return
+		}
 		log.Println(err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
@@ -159,7 +183,6 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(res)
 }

@@ -58,17 +58,21 @@ func (p *dbPostgres) Add(ctx context.Context, url string, userId uint32) (string
 	if err != nil {
 		return "", err
 	}
-	shorturl, err := p.GetByURLAndUserId(ctx, url, userId)
-
-	if err == nil {
-		return shorturl.ID, nil
-	}
 
 	_, err = p.db.ExecContext(ctx, "INSERT INTO urls (shorturl, originurl, userid) VALUES($1, $2, $3)", id, url, userId)
 	if err != nil {
 		return "", err
 	}
 	return id, nil
+}
+
+func (p *dbPostgres) GetByOriginalURL(ctx context.Context, url string) (string, error) {
+	row := p.db.QueryRowContext(ctx, "SELECT shorturl FROM urls WHERE originurl = $1", url)
+	var result string
+	if err := row.Scan(&result); err != nil {
+		return "", err
+	}
+	return result, nil
 }
 
 func (p *dbPostgres) GetByURLAndUserId(ctx context.Context, url string, userId uint32) (ShortURL, error) {
