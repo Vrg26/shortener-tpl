@@ -110,7 +110,7 @@ func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	shortUrls := make([]db.ShortURL, len(rBody))
-	for _, reqURL := range rBody {
+	for index, reqURL := range rBody {
 		if reqURL.OriginalURL == "" {
 			http.Error(w, fmt.Sprintf("empty url in the record with id %s", reqURL.CorrelationID), http.StatusBadRequest)
 			return
@@ -120,7 +120,7 @@ func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("invalid url in the record with id %s", reqURL.CorrelationID), http.StatusBadRequest)
 			return
 		}
-		shortUrls = append(shortUrls, db.ShortURL{OriginURL: reqURL.OriginalURL, CorrelationID: reqURL.CorrelationID})
+		shortUrls[index] = db.ShortURL{OriginURL: reqURL.OriginalURL, CorrelationID: reqURL.CorrelationID}
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
