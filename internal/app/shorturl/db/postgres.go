@@ -97,7 +97,7 @@ func (p *dbPostgres) GetURLsByUserID(ctx context.Context, userID uint32) ([]Shor
 	if err != nil {
 		return nil, err
 	}
-
+	defer rows.Close()
 	var result []ShortURL
 
 	for rows.Next() {

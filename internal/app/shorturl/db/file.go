@@ -34,7 +34,7 @@ func (f *dbFile) Add(ctx context.Context, url string, userID uint32) (string, er
 
 	shortURL, err := f.GetByURLAndUserID(url, userID)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	if shortURL.ID != "" {

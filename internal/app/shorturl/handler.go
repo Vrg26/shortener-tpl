@@ -42,7 +42,13 @@ func (h *handler) Register(r *chi.Mux) {
 func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
-	userID := ctx.Value(userKey).(uint32)
+	userID, ok := ctx.Value(userKey).(uint32)
+
+	if !ok {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
 	urls, err := h.shortURLService.GetURLsByUserID(ctx, userID)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -91,13 +97,19 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userKey).(uint32)
+	userID, ok := r.Context().Value(userKey).(uint32)
+
+	if !ok {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
 	var rBody []RequestBatchURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	var shortUrls []db.ShortURL
+	shortUrls := make([]db.ShortURL, len(rBody))
 	for _, reqURL := range rBody {
 		if reqURL.OriginalURL == "" {
 			http.Error(w, fmt.Sprintf("empty url in the record with id %s", reqURL.CorrelationID), http.StatusBadRequest)
@@ -143,7 +155,13 @@ func (h *handler) AddBatchURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userKey).(uint32)
+	userID, ok := r.Context().Value(userKey).(uint32)
+
+	if !ok {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
 	var rBody RequestURL
 	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -200,7 +218,13 @@ func (h *handler) AddJSONURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) AddTextURL(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(userKey).(uint32)
+	userID, ok := r.Context().Value(userKey).(uint32)
+
+	if !ok {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
 	id := r.URL.Path[1:]
 	if id != "" {
 		http.NotFound(w, r)

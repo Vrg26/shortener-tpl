@@ -88,7 +88,8 @@ func Test_handler_AddUrl(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(handlerSU.AddTextURL)
-			h.ServeHTTP(w, request)
+			ctx := context.WithValue(request.Context(), userKey, uint32(12345))
+			h.ServeHTTP(w, request.WithContext(ctx))
 			res := w.Result()
 
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
@@ -152,10 +153,11 @@ func Test_handler_AddJSONURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
-
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(handlerSU.AddJSONURL)
-			h.ServeHTTP(w, request)
+
+			ctx := context.WithValue(request.Context(), userKey, uint32(12345))
+			h.ServeHTTP(w, request.WithContext(ctx))
 			res := w.Result()
 
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)

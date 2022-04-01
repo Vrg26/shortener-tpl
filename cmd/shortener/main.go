@@ -53,31 +53,39 @@ func runServer(cfg *Config) error {
 	r.Use(middlewares.Gzip)
 
 	var service *shorturl.Service
-	if cfg.DataBaseDSN != "" {
-		dbPostgres, err := sql.Open("postgres", cfg.DataBaseDSN)
 
-		if err != nil {
-			return err
+	switch {
+	case cfg.DataBaseDSN != "":
+		{
+			dbPostgres, err := sql.Open("postgres", cfg.DataBaseDSN)
+
+			if err != nil {
+				return err
+			}
+			defer dbPostgres.Close()
+
+			r.Get("/ping", PingDB(dbPostgres))
+
+			st := db.NewPostgresStorage(dbPostgres)
+
+			if err := st.MigrateUp("file://migrations"); err != nil {
+				return err
+			}
+
+			service = shorturl.NewService(st)
 		}
-		defer dbPostgres.Close()
-
-		r.Get("/ping", PingDB(dbPostgres))
-
-		st := db.NewPostgresStorage(dbPostgres)
-
-		if err := st.MigrateUp("file://migrations"); err != nil {
-			return err
+	case cfg.FileStoragePath != "":
+		{
+			st := db.NewFileStorage(cfg.FileStoragePath)
+			service = shorturl.NewService(st)
 		}
-
-		service = shorturl.NewService(st)
-
-	} else if cfg.FileStoragePath == "" {
-		st := db.NewMemoryStorage()
-		service = shorturl.NewService(st)
-	} else {
-		st := db.NewFileStorage(cfg.FileStoragePath)
-		service = shorturl.NewService(st)
+	default:
+		{
+			st := db.NewMemoryStorage()
+			service = shorturl.NewService(st)
+		}
 	}
+
 	handler := shorturl.NewHandler(*service, cfg.BaseURL)
 	handler.Register(r)
 	return http.ListenAndServe(cfg.ServerAddress, r)

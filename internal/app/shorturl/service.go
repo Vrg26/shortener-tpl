@@ -32,6 +32,6 @@ func (s *Service) GetByOriginalURL(ctx context.Context, url string) (string, err
 	return s.storage.GetByOriginalURL(ctx, url)
 }
 
-func (s *Service) GetByID(ctx context.Context, IDURL string) (db.ShortURL, error) {
-	return s.storage.GetByID(ctx, IDURL)
+func (s *Service) GetByID(ctx context.Context, idURL string) (db.ShortURL, error) {
+	return s.storage.GetByID(ctx, idURL)
 }
