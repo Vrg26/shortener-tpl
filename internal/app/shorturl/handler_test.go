@@ -2,6 +2,7 @@ package shorturl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/go-chi/chi/v5"
@@ -42,6 +43,7 @@ func Test_handler_AddUrl(t *testing.T) {
 		request string
 		body    string
 		want    want
+		isgzip  bool
 	}{
 		{
 			name:    "success test",
@@ -83,9 +85,11 @@ func Test_handler_AddUrl(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
+
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(handlerSU.AddTextURL)
-			h.ServeHTTP(w, request)
+			ctx := context.WithValue(request.Context(), userKey, uint32(12345))
+			h.ServeHTTP(w, request.WithContext(ctx))
 			res := w.Result()
 
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
@@ -103,7 +107,7 @@ func Test_handler_AddUrl(t *testing.T) {
 	}
 }
 
-func Test_handler_AddShorten(t *testing.T) {
+func Test_handler_AddJSONURL(t *testing.T) {
 	st := db.NewMemoryStorage()
 	s := NewService(st)
 	handlerSU := NewHandler(*s, "http://localhost")
@@ -116,6 +120,7 @@ func Test_handler_AddShorten(t *testing.T) {
 		request string
 		body    string
 		want    want
+		isgzip  bool
 	}{
 		{
 			name:    "success test",
@@ -150,7 +155,9 @@ func Test_handler_AddShorten(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBufferString(tt.body))
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(handlerSU.AddJSONURL)
-			h.ServeHTTP(w, request)
+
+			ctx := context.WithValue(request.Context(), userKey, uint32(12345))
+			h.ServeHTTP(w, request.WithContext(ctx))
 			res := w.Result()
 
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
@@ -158,7 +165,7 @@ func Test_handler_AddShorten(t *testing.T) {
 
 			if tt.want.statusCode == http.StatusCreated {
 
-				var result ResponseURL
+				var result RespResultURL
 				err := json.NewDecoder(res.Body).Decode(&result)
 				require.NoError(t, err)
 				err = res.Body.Close()
@@ -177,7 +184,7 @@ func Test_handler_GetUrl(t *testing.T) {
 	h := NewHandler(*s, "")
 	h.Register(r)
 
-	idURL, err := st.Add("https://practicum.yandex.ru")
+	idURL, err := st.Add(context.Background(), "https://www.google.ru", 1234)
 	require.NoError(t, err)
 
 	ts := httptest.NewServer(r)
@@ -196,7 +203,7 @@ func Test_handler_GetUrl(t *testing.T) {
 			name:    "success test",
 			request: "/" + idURL,
 			want: want{
-				contentType: "text/html; charset=utf-8",
+				contentType: "text/html; charset=windows-1251",
 				statusCode:  200,
 			},
 		},

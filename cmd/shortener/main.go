@@ -1,20 +1,30 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"flag"
+	"github.com/Vrg26/shortener-tpl/internal/app/middlewares"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl"
 	"github.com/Vrg26/shortener-tpl/internal/app/shorturl/db"
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/jackc/pgx"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
+	"time"
 )
 
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:":8080"`
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	SecretKey       string `env:"SECRET_KEY" envDefault:"secret key"`
+	DataBaseDSN     string `env:"DATABASE_DSN"`
 }
 
 func main() {
@@ -23,10 +33,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "server address")
 	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "base url")
 	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "file storage path")
+	flag.StringVar(&cfg.DataBaseDSN, "d", cfg.DataBaseDSN, "database connection string")
 
 	flag.Parse()
 
@@ -39,18 +49,56 @@ func runServer(cfg *Config) error {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middlewares.Auth(cfg.ServerAddress))
+	r.Use(middlewares.Gzip)
 
-	var st db.Storage
+	var service *shorturl.Service
 
-	if cfg.FileStoragePath == "" {
-		st = db.NewMemoryStorage()
-	} else {
-		st = db.NewFileStorage(cfg.FileStoragePath)
+	switch {
+	case cfg.DataBaseDSN != "":
+		{
+			dbPostgres, err := sql.Open("postgres", cfg.DataBaseDSN)
+
+			if err != nil {
+				return err
+			}
+			defer dbPostgres.Close()
+
+			r.Get("/ping", PingDB(dbPostgres))
+
+			st := db.NewPostgresStorage(dbPostgres)
+
+			if err := st.MigrateUp("file://migrations"); err != nil {
+				return err
+			}
+
+			service = shorturl.NewService(st)
+		}
+	case cfg.FileStoragePath != "":
+		{
+			st := db.NewFileStorage(cfg.FileStoragePath)
+			service = shorturl.NewService(st)
+		}
+	default:
+		{
+			st := db.NewMemoryStorage()
+			service = shorturl.NewService(st)
+		}
 	}
 
-	service := shorturl.NewService(st)
 	handler := shorturl.NewHandler(*service, cfg.BaseURL)
 	handler.Register(r)
-
 	return http.ListenAndServe(cfg.ServerAddress, r)
+}
+
+func PingDB(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
 }

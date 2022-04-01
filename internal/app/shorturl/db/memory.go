@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -33,7 +34,40 @@ func (d *dbMemory) generateID() string {
 	}
 }
 
-func (d *dbMemory) Add(url string) (string, error) {
+func (d *dbMemory) GetByOriginalURL(ctx context.Context, url string) (string, error) {
+	for _, itemMap := range d.urls {
+		if itemMap.OriginURL == url {
+			return itemMap.ID, nil
+		}
+	}
+	return "", errors.New("short url not found")
+}
+
+func (d *dbMemory) GetURLsByUserID(ctx context.Context, userID uint32) ([]ShortURL, error) {
+	if d.urls == nil {
+		return []ShortURL{}, nil
+	}
+	var resultURLs []ShortURL
+	for _, itemMap := range d.urls {
+		if itemMap.UserID == userID {
+			resultURLs = append(resultURLs, itemMap)
+		}
+	}
+	return resultURLs, nil
+}
+
+func (d *dbMemory) AddBatchURL(ctx context.Context, urls []ShortURL, userID uint32) ([]ShortURL, error) {
+	for index, url := range urls {
+		id, err := d.Add(ctx, url.OriginURL, userID)
+		if err != nil {
+			return nil, err
+		}
+		urls[index].ID = id
+	}
+	return urls, nil
+}
+
+func (d *dbMemory) Add(ctx context.Context, url string, userID uint32) (string, error) {
 	if d.urls == nil {
 		d.Lock()
 		d.urls = make(map[string]ShortURL)
@@ -45,12 +79,13 @@ func (d *dbMemory) Add(url string) (string, error) {
 	d.urls[newID] = ShortURL{
 		ID:        newID,
 		OriginURL: url,
+		UserID:    userID,
 	}
 	d.Unlock()
 	return newID, nil
 }
 
-func (d *dbMemory) GetByID(id string) (ShortURL, error) {
+func (d *dbMemory) GetByID(ctx context.Context, id string) (ShortURL, error) {
 	if ShortURL, ok := d.urls[id]; ok {
 		return ShortURL, nil
 	}
