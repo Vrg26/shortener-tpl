@@ -3,6 +3,7 @@ CREATE TABLE urls (
                       shortUrl varchar(250) unique not null,
                       originUrl varchar (2100) not null,
                       userId bigint,
+                      isDeleted BOOLEAN DEFAULT false not null,
                       created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

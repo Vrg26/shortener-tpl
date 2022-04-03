@@ -37,6 +37,28 @@ func (h *handler) Register(r *chi.Mux) {
 	r.Post("/", h.AddTextURL)
 	r.Post("/api/shorten", h.AddJSONURL)
 	r.Post("/api/shorten/batch", h.AddBatchURL)
+	r.Delete("/api/user/urls", h.DeleteURLs)
+}
+
+func (h *handler) DeleteURLs(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(userKey).(uint32)
+
+	if !ok {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	var rBody []string
+	if err := json.NewDecoder(r.Body).Decode(&rBody); err != nil {
+		log.Println(err.Error())
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := h.shortURLService.DeleteURLs(r.Context(), rBody, userID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *handler) GetURLsByUserID(w http.ResponseWriter, r *http.Request) {
@@ -91,6 +113,10 @@ func (h *handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	shortURL, err := h.shortURLService.GetByID(ctx, id)
 	if err != nil {
 		http.NotFound(w, r)
+		return
+	}
+	if shortURL.IsDeleted {
+		w.WriteHeader(http.StatusGone)
 		return
 	}
 	http.Redirect(w, r, shortURL.OriginURL, http.StatusTemporaryRedirect)
