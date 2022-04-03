@@ -32,6 +32,10 @@ func (s *Service) GetByOriginalURL(ctx context.Context, url string) (string, err
 	return s.storage.GetByOriginalURL(ctx, url)
 }
 
+func (s *Service) DeleteURLs(ctx context.Context, ids []string, userID uint32) error {
+	return s.storage.DeleteURLs(ctx, ids, userID)
+}
+
 func (s *Service) GetByID(ctx context.Context, idURL string) (db.ShortURL, error) {
 	return s.storage.GetByID(ctx, idURL)
 }

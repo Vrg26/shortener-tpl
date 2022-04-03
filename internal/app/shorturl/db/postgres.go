@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/lib/pq"
+	"strings"
 )
 
 type dbPostgres struct {
@@ -52,6 +54,12 @@ func (p *dbPostgres) AddBatchURL(ctx context.Context, urls []ShortURL, userID ui
 	return urls, nil
 }
 
+func (p *dbPostgres) DeleteURLs(ctx context.Context, ids []string, userID uint32) error {
+	_, err := p.db.ExecContext(ctx, "UPDATE urls SET isdeleted=true WHERE shorturl = any($1) AND userid = $2", pq.Array(ids), userID)
+	fmt.Printf("UPDATE urls SET isdeleted=true WHERE shorturl IN(%s) AND userID = %d", strings.Join(ids, ", "), userID)
+	return err
+}
+
 func (p *dbPostgres) Add(ctx context.Context, url string, userID uint32) (string, error) {
 	id, err := p.generateID()
 
@@ -85,9 +93,9 @@ func (p *dbPostgres) GetByURLAndUserID(ctx context.Context, url string, userID u
 }
 
 func (p *dbPostgres) GetByID(ctx context.Context, id string) (ShortURL, error) {
-	row := p.db.QueryRowContext(ctx, "SELECT shorturl, originurl FROM urls WHERE shorturl = $1", id)
+	row := p.db.QueryRowContext(ctx, "SELECT shorturl, originurl, isdeleted FROM urls WHERE shorturl = $1", id)
 	var result ShortURL
-	if err := row.Scan(&result.ID, &result.OriginURL); err != nil {
+	if err := row.Scan(&result.ID, &result.OriginURL, &result.IsDeleted); err != nil {
 		return result, err
 	}
 	return result, nil

@@ -30,6 +30,10 @@ func (f *dbFile) AddBatchURL(ctx context.Context, urls []ShortURL, userID uint32
 	return urls, nil
 }
 
+func (f *dbFile) DeleteURLs(ctx context.Context, ids []string, userID uint32) error {
+	return nil
+}
+
 func (f *dbFile) Add(ctx context.Context, url string, userID uint32) (string, error) {
 
 	shortURL, err := f.GetByURLAndUserID(url, userID)

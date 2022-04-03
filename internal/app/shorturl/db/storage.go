@@ -10,4 +10,5 @@ type Storage interface {
 	GetByOriginalURL(ctx context.Context, url string) (string, error)
 	GetURLsByUserID(ctx context.Context, userID uint32) ([]ShortURL, error)
 	AddBatchURL(ctx context.Context, urls []ShortURL, userID uint32) ([]ShortURL, error)
+	DeleteURLs(ctx context.Context, ids []string, userID uint32) error
 }

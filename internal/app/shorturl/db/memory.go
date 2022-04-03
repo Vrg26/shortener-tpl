@@ -43,6 +43,10 @@ func (d *dbMemory) GetByOriginalURL(ctx context.Context, url string) (string, er
 	return "", errors.New("short url not found")
 }
 
+func (d *dbMemory) DeleteURLs(ctx context.Context, ids []string, userID uint32) error {
+	return nil
+}
+
 func (d *dbMemory) GetURLsByUserID(ctx context.Context, userID uint32) ([]ShortURL, error) {
 	if d.urls == nil {
 		return []ShortURL{}, nil
